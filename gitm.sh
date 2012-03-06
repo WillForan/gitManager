@@ -118,6 +118,7 @@ if [ $newProject ]; then
 
    # push to it
    git push origin master
+
 else
  echo "I don't do anyting without -n option yet"
 fi

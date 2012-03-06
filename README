@@ -2,3 +2,6 @@ gitm.sh
 
 A simple bash script to create new bare repos on a remote sever 
 and set them as the origin to current directory project
+
+#### 
+is it a good reasonable to put a link to gitm in bin?
