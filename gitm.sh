@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
 ####
+#   $0 -n -g # use current directory as as project, put on remote, put remote on github
+#  
+#  
 #  -p  string   project name
 #
 #     if not provided, assume name is cwd
@@ -15,6 +18,8 @@
 #  ######## flags ##########
 #  -n  flag     is/create a new project
 #  -c  flag     check dirname is expected
+#  -g  flag     create github and add as remote hook
+#  -G  flag     add github as remote hook (-gG same as -G)
 #
 #  assumes bare git repo at ssh://host/rootdir/project
 #  
@@ -22,6 +27,16 @@
 #
 #ENDHELP
 ####
+
+#### SETTINGS #####
+
+  githubconf=$(dirname $0)/github.conf
+    bareHost='git@reese'
+ bareHostDir='/home/git/'
+expectToBeIn='src'      # most projects start in ....src/project -- warn if thats not the case
+
+#### Functions #####
+
 function dispHelp {
    echo "USAGE: $0"
 
@@ -30,17 +45,32 @@ function dispHelp {
 
    exit 1
 }
+function newGitHub {
 
-   dontcheck=
+   # return if we can't read
+   [ ! -r "$githubconf" ] && echo "Cannot read $githubconf" && return 1
 
-    bareHost='git@reese'
- bareHostDir='/home/git/'
+   # get user and token from githubconf
+   read user token < $githubconf
 
-expectToBeIn='src'      # most projects start in ....src/project -- warn if thats not the case
-while getopts "ncp:H:R:W:" opt; do
+   # use github API to create new repo
+   curl -F "login=$user"   \
+        -F "token=$token"  \
+        -F "name=$project" \
+        https://github.com/api/v2/yaml/repos/create |
+    grep created_at 2>&1 2>/dev/null
+
+   return $? # return true if curl has created_at in response
+}
+
+
+while getopts "cgnp:H:R:W:" opt; do
    case $opt in
     n) # create a new project on remote host
       newProject=1
+    ;;
+    g) # create a new project on remote hostB
+      github=1
     ;;
     p) # project name on remote host
       project=$OPTARG
@@ -59,11 +89,17 @@ while getopts "ncp:H:R:W:" opt; do
     W)  # working root for project is elsewhere, cd to it
       cd $OPTARG || exit 1
     ;;
+    G) # create a new project on remote hostB
+      github=1
+      githubcreated=1
+    ;;
     *)
       dispHelp
     ;;
    esac
 done
+
+#### CHECKS and SETUP ######
 
 # check that the cwd is where we expect projects to be
 # give a chance to quit if it isn't (overide interative-ness with -c [for no check])
@@ -74,17 +110,22 @@ done
 # project is cwd name if not provided with p
 [ -n "$project" ] || project=$(basename $(pwd));
 
+remoteProjName=$project.git
+
+
+#### DO WORK ######
+
 # create a new project
 if [ $newProject ]; then
 
    # make sure it's actually new to the host
-   ssh $bareHost "ls $bareHostDir/$project.git" 2>&1 1>/dev/null  && \
-      echo "$project.git already exists on $bareHost"             && \
+   ssh $bareHost "ls $bareHostDir/$remoteProjName" 2>&1 1>/dev/null   && \
+      echo "$remoteProjName already exists on $bareHost"              && \
       exit 1
 
    # create bare repo on host 
-   ! ssh $bareHost "cd $bareHostDir; git init --bare $project.git" && \
-      echo "could not create bare $project"                        && \
+   ! ssh $bareHost "cd $bareHostDir; git init --bare $remoteProjName" && \
+      echo "could not create bare $project"                           && \
       exit 1
 
 
@@ -118,8 +159,24 @@ if [ $newProject ]; then
 
    # push to it
    git push origin master
-
-else
- echo "I don't do anyting without -n option yet"
 fi
 
+if [ $github ]; then
+
+ # if we don't think a github repos been created already 
+ # try creating one
+ # if that fails exit with an error message
+  [ -z "$githubcreated" ]                              && \
+   ! newGitHub                                         && \
+   echo "github for $project already exists (use -G) " && \
+   echo "or bad user/token"                            && \
+   exit 1
+
+
+ # check remote exists, and doesn't have a remote in config
+ #ssh $bareHost  'cd $bareHostDir/$remoteProjName && ! grep remote .git/config '  2>&1 1>/dev/null
+ # git remote add origin git@github.com:WillForan/gitManager.git
+ # git push -u origin master
+ # add remote
+ # add hook
+fi 
