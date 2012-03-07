@@ -2,6 +2,7 @@
 
 ####
 #   $0 -n -g # use current directory as as project, put on remote, put remote on github
+#   $0 -s    # status of project
 #  
 #  
 #  -p  string   project name
@@ -16,10 +17,13 @@
 #      should instead be run in the working directory of the project
 #
 #  ######## flags ##########
-#  -n  flag     is/create a new project
-#  -c  flag     check dirname is expected
+#  -s  flag     get status
+
 #  -g  flag     create github and add as remote hook
 #  -G  flag     add github as remote hook (-gG same as -G)
+
+#  -n  flag     is/create a new project
+#  -c  flag     check dirname is expected
 #
 #  assumes bare git repo at ssh://host/rootdir/project
 #  
@@ -50,21 +54,39 @@ function newGitHub {
    # return if we can't read
    [ ! -r "$githubconf" ] && echo "Cannot read $githubconf" && return 1
 
-   # get user and token from githubconf
-   read user token < $githubconf
+   # get user and token from githubconf and export them
+   set -a
+   read githubUser token < $githubconf
+   set +a
 
    # use github API to create new repo
-   curl -F "login=$user"   \
-        -F "token=$token"  \
-        -F "name=$project" \
+   curl -F "login=$githubUser"   \
+        -F "token=$token"        \
+        -F "name=$project"       \
         https://github.com/api/v2/yaml/repos/create |
     grep created_at 2>&1 2>/dev/null
 
    return $? # return true if curl has created_at in response
 }
+function addPostHook {
+ # write whatever $@ is to post-update git hook
+ # create file with shabnag and correct permissions if DNE
+ ssh $bareHost "cd $bareHostDir/$remoteProjName/hooks;
+                  if [ ! -r post-update ]; then
+                   echo '#!/bin/sh' > post-update
+                   chmod +x post-update
+                  fi 
+
+                  echo '$@' >> post-update"
+
+ return $?
+}
 
 
-while getopts "cgnp:H:R:W:" opt; do
+# if no args, pretent it's -s
+[ "x$1" == "x" ] && getStatus=1
+
+while getopts "cgnsp:H:R:W:" opt; do
    case $opt in
     n) # create a new project on remote host
       newProject=1
@@ -78,6 +100,9 @@ while getopts "cgnp:H:R:W:" opt; do
     c) # dont care about known convetions
       dontcheck=1
     ;;
+    s) # dont care about known convetions
+      getStatus=1
+    ;;
 
 
     H) # (Host)  what machine to add bare project to
@@ -89,7 +114,7 @@ while getopts "cgnp:H:R:W:" opt; do
     W)  # working root for project is elsewhere, cd to it
       cd $OPTARG || exit 1
     ;;
-    G) # create a new project on remote hostB
+    G) # add github post-update hook for project that already exists
       github=1
       githubcreated=1
     ;;
@@ -128,6 +153,14 @@ if [ $newProject ]; then
       echo "could not create bare $project"                           && \
       exit 1
 
+   # add post-update  xmpp message sending to remote server
+   # or exit with message (maybe don't have to die for this error?)
+   ! addPostHook 'echo $(pwd) $@ | sendxmpp will@reese'      && \
+      echo "post-update hook creation failed"                && \
+      echo "This shouldn't happen"                           && \
+      exit 1
+      
+
 
    # if there is a git repo
    # make sure there isn't already a remote section
@@ -136,6 +169,8 @@ if [ $newProject ]; then
          echo "You already have a remote in your .git/conf." && \
          echo "I'm not touching that"                        && \
          exit 1;
+
+      # repo exists but doesn't talk to anything else yet
       echo youve already started a local git repo here, thats cool
 
    # if there isn't a git repo 
@@ -173,10 +208,41 @@ if [ $github ]; then
    exit 1
 
 
- # check remote exists, and doesn't have a remote in config
- #ssh $bareHost  'cd $bareHostDir/$remoteProjName && ! grep remote .git/config '  2>&1 1>/dev/null
- # git remote add origin git@github.com:WillForan/gitManager.git
- # git push -u origin master
- # add remote
- # add hook
+ # check remote exists, and doesn't have it's own remote in config yet
+ # add github to remote or exit with error message
+ ! ssh $bareHost "cd $bareHostDir/$remoteProjName                           && \
+                 ! grep remote config                                       && \
+                 git remote add origin git@github.com:$githubUser/$project  && \
+                 git push -u origin master"  2>&1 1>/dev/null               && \
+    echo "could not add git@github.com:$githubUser/$project as remote"      && \
+    echo "either remote already exists or push failed"                      && \
+    exit 1;
+
+ # add hook to update to github
+ addPostHook 'git push origin master'
+
 fi 
+
+if [ $getStatus ]; then
+  
+  # is git?  -- this won't work for -p
+  if [ -d ../$project/.git ]; then
+    echo "$project is tracked by git"
+  else
+   exit
+  fi
+
+  #echo "status of remote (exist)"
+  if ssh $bareHost "ls $bareHostDir/$remoteProjName" 2>&1 1>/dev/null; then
+     echo "$bareHost:$bareHostDir/$remoteProjName exists"
+  else
+     exit
+  fi
+
+  echo "remote"
+  ssh $bareHost "tail -n2 $bareHostDir/$remoteProjName/config"
+
+  echo "post-update hook"
+  ssh $bareHost "cat $bareHostDir/$remoteProjName/hooks/post-update"
+fi
+
