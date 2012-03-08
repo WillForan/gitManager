@@ -4,8 +4,9 @@ small bash script to
 
 * (-n) make bare repository on a remote host
 * (-n) add it as a remote origin
-* (-n or -l) adds local commit hook to push to origin
 * (-n) add hook on remote to send xmpp (TODO: configurabe user@host)
+* (-n or -l) adds local commit hook to push to origin
+* (-n or -l) adds bare repo and localdir to watch list
 * (-g or -G)
 	- (-g) create github repo
 	- (-g or -G) add github remote origin to bare repo
@@ -33,6 +34,16 @@ will put local hooks (post-commit: push to bare remote) on newly cloned
 ###  "Status" ###
 	gitm.sh  [-s]
 
-show remote repo (local and bare remote)
-show hooks       (local and bare remote)
-also provide clone uri
+* show remote repo (local and bare remote)
+* show hooks       (local and bare remote)
+* also provide clone uri
+
+# Requires # 
+* git
+* sendxmpp and account
+* sshd and host for remote bare repo
+
+# Todo # 
+
+* Jabber bot listener
+* more configurable (esp. xmpp service)

@@ -1,0 +1,21 @@
+# configuration options for gitmanager
+# put me in $HOME/.config/gitm/rc
+# should be sourced by gitm.sh and gitd.sh
+
+set -a
+
+bareHost='git@reese'
+bareHostDir='/home/git/'
+
+# most projects start in ....src/project -- warn if thats not the case
+expectToBeIn='src'     
+
+githubUser=fillmeIn
+token=WithYourAPIkey
+
+xmppUser=bot@reese
+xmppPasswd=bot
+
+gitManagedList=$HOME/.config/gitm/list
+
+set +a

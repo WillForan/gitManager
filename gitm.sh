@@ -4,7 +4,9 @@
 #   $0 -n -g # use current directory as as project, put on remote, put remote on github
 #   $0 -s    # status of project
 #   git pull
-#   $0 -l # set local hooks
+#   $0 -l # set local hooks and local watch directory
+#
+#   looks in $HOME/.config/gitm/rc for configuration
 #
 #   o make bare repository on a remote host
 #   o add it as a remote origin
@@ -44,11 +46,11 @@
 
 #### SETTINGS #####
 
-  #githubconf=$(dirname $0)/github.conf
-  githubconf=$HOME/.config/github.conf
-    bareHost='git@reese'
- bareHostDir='/home/git/'
-expectToBeIn='src'      # most projects start in ....src/project -- warn if thats not the case
+configFile=$HOME/.config/gitm/rc
+
+! source  $configFile                              && \
+  echo "Cannot source configuration: $configFile!" && \
+  exit 1
 
 #### Functions #####
 
@@ -62,13 +64,18 @@ function dispHelp {
 }
 function newGitHub {
 
-   # exit if we can't read  (maybe should just return?)
-   [ ! -r "$githubconf" ] && echo "Cannot read $githubconf" && exit 1
+   ## get this from RC file now
+   ### exit if we can't read  (maybe should just return?)
+   ##[ ! -r "$githubconf" ] && echo "Cannot read $githubconf" && exit 1
 
-   # get user and token from githubconf and export them
-   set -a
-   sed -e 's/\s*#.*//;/^$/d' $githubconf | read githubUser token
-   set +a
+   ### get user and token from githubconf and export them
+   ##set -a
+   ##sed -e 's/\s*#.*//;/^$/d' $githubconf | read githubUser token
+   ##set +a
+
+   [ -z $githubUser -o -z $token -o "$githubUser" == "fillMeIn" ] && \
+    echo "Github settings are not set in $configFile"             && \
+    exit 1
 
    # use github API to create new repo
    curl -F "login=$githubUser"   \
@@ -108,6 +115,18 @@ function addlocalhooks {
    #add push if DNE
    grep '^git push'    .git/hooks/post-commit 1>/dev/null || \
     echo 'git push' >> .git/hooks/post-commit
+
+   ### also add this local dir to watch list
+   # get the url path whos base is the remote bare host
+   # rather than use $remoteProjName -- this allows -l to work when -n wasn't used
+   #  and provides a check that we can work on this git tree
+   proj="$(perl -ne 's:/+:/:g; print $1 if /url.*$ENV{"bareHost"}:(.*)/' .git/config)"
+  
+   [ -z $proj ] && echo "no url matching $bareHost (should have been $remotePath$remoteProjName) in .git/config" && exit 1;
+
+   # proj is in the file already OR  add it
+   grep "^$proj" $gitManagedList || echo "$proj $(pwd)" >> $gitManagedList;
+
 
 }
 
@@ -285,7 +304,7 @@ if [ $getStatus ]; then
      echo "$bareHost:$bareHostDir/$remoteProjName  does not exist "  && \
      exit
 
-  echo "BARE: git clone $barehHost:$bareHostdir/$remoteProjName"
+  echo "BARE: git clone $bareHost:$bareHostdir/$remoteProjName"
   echo " REMOTE"
   (ssh $bareHost "grep -A2 '\[remote' $bareHostDir/$remoteProjName/config"        || echo "NONE") | 
      sed -e 's/^/	/' 
