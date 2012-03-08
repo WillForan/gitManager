@@ -2,14 +2,14 @@
 
 small bash script to
 
-* make bare repository on a remote host                         (-n)
-* add it as a remote origin                                     (-n)
-* adds local commit hook to push to origin                      (-n or -l)
-* add hook on remote to send xmpp (TODO: configurabe user@host) (-n)
-* (optional -- can be run at any time)                          (-g or -G)
-	- create github repo                                    (-g)
-	- add github remote origin to bare repo                 (-g or -G)
-	- add hook on bare to push to github                    (-g or -G)
+* (-n) make bare repository on a remote host
+* (-n) add it as a remote origin
+* (-n or -l) adds local commit hook to push to origin
+* (-n) add hook on remote to send xmpp (TODO: configurabe user@host)
+* (-g or -G)
+	- (-g) create github repo
+	- (-g or -G) add github remote origin to bare repo
+	- (-g or -G) add hook on bare to push to github
 
 ## Usage cases ##
 
