@@ -51,8 +51,8 @@ function dispHelp {
 }
 function newGitHub {
 
-   # return if we can't read
-   [ ! -r "$githubconf" ] && echo "Cannot read $githubconf" && return 1
+   # exit if we can't read  (maybe should just return?)
+   [ ! -r "$githubconf" ] && echo "Cannot read $githubconf" && exit 1
 
    # get user and token from githubconf and export them
    set -a
@@ -127,9 +127,11 @@ done
 #### CHECKS and SETUP ######
 
 # check that the cwd is where we expect projects to be
+# when we arn't simily checking status and there isn't alrady a .git folder
 # give a chance to quit if it isn't (overide interative-ness with -c [for no check])
-[ -z $dontcheck ] && [[ ! $(dirname $(pwd)) =~ "/$expectToBeIn" ]]        &&  \
-   echo "are you sure you want to start a project in $(pwd)? (^C for no)" &&  \
+[ -z $dontcheck ] && [[ ! $(dirname $(pwd)) =~ "/$expectToBeIn" ]]        && \
+ [ ! -d .git ]    && [ -z $getStatus ]                                    && \
+   echo "are you sure you want to start a project in $(pwd)? (^C for no)" && \
    read
 
 # project is cwd name if not provided with p
@@ -188,6 +190,17 @@ if [ $newProject ]; then
    fi
 
 
+   #
+   # add push for commit if it's not already there
+   
+   # create file if DNE
+   ls .git/hooks/post-commit 2>&1 1>/dev/null || \
+      ( echo '#!/bin/sh' > .git/hooks/post-commit && \
+        chmod +x           .git/hooks/post-commit)
+
+   #add push if DNE
+   grep '^git push'    .git/hooks/post-commit 1>/dev/null || \
+    echo 'git push' >> .git/hooks/post-commit
 
    # set remote origin
    git remote add origin $bareHost:$bareHostDir/$project.git
@@ -225,24 +238,31 @@ fi
 
 if [ $getStatus ]; then
   
-  # is git?  -- this won't work for -p
-  if [ -d ../$project/.git ]; then
-    echo "$project is tracked by git"
-  else
-   exit
-  fi
+  # is git (cwd is set by -W or is project dir)
+  echo "LOCAL"
 
-  #echo "status of remote (exist)"
-  if ssh $bareHost "ls $bareHostDir/$remoteProjName" 2>&1 1>/dev/null; then
-     echo "$bareHost:$bareHostDir/$remoteProjName exists"
-  else
+  [ ! -d .git ] && echo "$project is not tracked by git" && \
      exit
-  fi
 
-  echo "remote"
-  ssh $bareHost "tail -n2 $bareHostDir/$remoteProjName/config"
+  echo " REMOTE"
+  sed -ne '/^\[remote/,+2 s/^/\t/p' .git/config 2>/dev/null
 
-  echo "post-update hook"
-  ssh $bareHost "cat $bareHostDir/$remoteProjName/hooks/post-update"
+  echo " POST-COMMIT"
+  sed -e 's/^/\t/' .git/hooks/post-commit 2>/dev/null || echo -e "\tNONE"
+
+
+  # is it on the bare remote host?
+  ! ssh $bareHost "ls $bareHostDir/$remoteProjName" 2>&1 1>/dev/null && \
+     echo "$bareHost:$bareHostDir/$remoteProjName  does not exist "  && \
+     exit
+
+  echo "BARE"
+  echo " REMOTE"
+  (ssh $bareHost "grep -A2 '\[remote' $bareHostDir/$remoteProjName/config"        || echo "NONE") | 
+     sed -e 's/^/\t/' 
+
+  echo " POST-UPDATE"
+  (ssh $bareHost "cat $bareHostDir/$remoteProjName/hooks/post-update 2>/dev/null" || echo -e "NONE")  | 
+    sed -e 's/^/\t/' 
 fi
 
