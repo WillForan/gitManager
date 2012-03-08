@@ -3,7 +3,12 @@
 ####
 #   $0 -n -g # use current directory as as project, put on remote, put remote on github
 #   $0 -s    # status of project
-#  
+#
+#   o make bare repository on a remote host
+#   o add it as a remote origin
+#   o adds local commit hook to push to origin
+#   o add hook on remote to send xmpp (TODO: configurabe user@host)
+#   o (optional) add hook on remote to push to github
 #  
 #  -p  string   project name
 #
@@ -157,7 +162,8 @@ if [ $newProject ]; then
 
    # add post-update  xmpp message sending to remote server
    # or exit with message (maybe don't have to die for this error?)
-   ! addPostHook 'echo $(pwd) $@ | sendxmpp will@reese'      && \
+   # TODO: will@reese should be a configurable jabber ID
+   ! addPostHook 'echo "$(pwd) $@" | sendxmpp will@reese'    && \
       echo "post-update hook creation failed"                && \
       echo "This shouldn't happen"                           && \
       exit 1
