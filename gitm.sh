@@ -163,9 +163,9 @@ if [ $newProject ]; then
    # add post-update  xmpp message sending to remote server
    # or exit with message (maybe don't have to die for this error?)
    # TODO: will@reese should be a configurable jabber ID
-   ! addPostHook 'echo "$(pwd) $@" | sendxmpp will@reese'    && \
-      echo "post-update hook creation failed"                && \
-      echo "This shouldn't happen"                           && \
+   ! addPostHook 'echo "$(pwd) $@" | /usr/bin/site_perl/sendxmpp will@reese'    && \
+      echo "post-update hook creation failed"                                   && \
+      echo "This shouldn't happen"                                              && \
       exit 1
       
 
