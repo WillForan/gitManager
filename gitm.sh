@@ -67,7 +67,7 @@ function newGitHub {
 
    # get user and token from githubconf and export them
    set -a
-   read githubUser token < $githubconf
+   sed -e 's/\s*#.*//;/^$/d' $githubconf | read githubUser token
    set +a
 
    # use github API to create new repo
@@ -93,7 +93,7 @@ function addPostHook {
  return $?
 }
 
-function addlocalhooks{
+function addlocalhooks {
    # check we have a git dir or exit
    [ ! -d .git ] && echo "Not a git repo" && exit 1
 
@@ -285,7 +285,7 @@ if [ $getStatus ]; then
      echo "$bareHost:$bareHostDir/$remoteProjName  does not exist "  && \
      exit
 
-  echo "BARE"
+  echo "BARE: git clone $barehHost:$bareHostdir/$remoteProjName"
   echo " REMOTE"
   (ssh $bareHost "grep -A2 '\[remote' $bareHostDir/$remoteProjName/config"        || echo "NONE") | 
      sed -e 's/^/\t/' 
