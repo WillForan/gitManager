@@ -1,7 +1,12 @@
 gitm.sh
 
-A simple bash script to create new bare repos on a remote sever 
-and set them as the origin to current directory project
+small bash script to
 
-#### 
-is it reasonable to put a link to gitm in bin?
+o make bare repository on a remote host                         (-n)
+o add it as a remote origin                                     (-n)
+o adds local commit hook to push to origin                      (-n or -l)
+o add hook on remote to send xmpp (TODO: configurabe user@host) (-n)
+o (optional -- can be run at any time)                          (-g or -G)
+     - create github repo                                       (-g)
+     - add github remote origin to bare repo                    (-g or -G)
+     - add hook on bare to push to github                       (-g or -G)
