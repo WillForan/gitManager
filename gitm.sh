@@ -101,7 +101,7 @@ function addlocalhooks {
    # add push for commit if it's not already there
    
    # create file if DNE
-   ls .git/hooks/post-commit 2>&1 1>/dev/null || \
+   ls .git/hooks/post-commit 1>&2 1>/dev/null || \
       ( echo '#!/bin/sh' > .git/hooks/post-commit && \
         chmod +x           .git/hooks/post-commit)
 
@@ -274,10 +274,10 @@ if [ $getStatus ]; then
      exit
 
   echo " REMOTE"
-  sed -ne '/^\[remote/,+2 s/^/\t/p' .git/config 2>/dev/null
+  sed -ne '/^\[remote/,+2 s/^/	/p' .git/config 2>/dev/null
 
   echo " POST-COMMIT"
-  sed -e 's/^/\t/' .git/hooks/post-commit 2>/dev/null || echo -e "\tNONE"
+  sed -e 's/^/	/' .git/hooks/post-commit 2>/dev/null || echo -e "	NONE"
 
 
   # is it on the bare remote host?
@@ -288,10 +288,10 @@ if [ $getStatus ]; then
   echo "BARE: git clone $barehHost:$bareHostdir/$remoteProjName"
   echo " REMOTE"
   (ssh $bareHost "grep -A2 '\[remote' $bareHostDir/$remoteProjName/config"        || echo "NONE") | 
-     sed -e 's/^/\t/' 
+     sed -e 's/^/	/' 
 
   echo " POST-UPDATE"
   (ssh $bareHost "cat $bareHostDir/$remoteProjName/hooks/post-update 2>/dev/null" || echo -e "NONE")  | 
-    sed -e 's/^/\t/' 
+    sed -e 's/^/	/' 
 fi
 
