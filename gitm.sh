@@ -3,12 +3,17 @@
 ####
 #   $0 -n -g # use current directory as as project, put on remote, put remote on github
 #   $0 -s    # status of project
+#   git pull
+#   $0 -l # set local hooks
 #
 #   o make bare repository on a remote host
 #   o add it as a remote origin
 #   o adds local commit hook to push to origin
 #   o add hook on remote to send xmpp (TODO: configurabe user@host)
-#   o (optional) add hook on remote to push to github
+#   o (optional (-g) -- can be run at any time) 
+#        - create github repo 
+#        - add github remote origin to bare repo
+#        - add hook on bare to push to github
 #  
 #  -p  string   project name
 #
@@ -39,7 +44,8 @@
 
 #### SETTINGS #####
 
-  githubconf=$(dirname $0)/github.conf
+  #githubconf=$(dirname $0)/github.conf
+  githubconf=$HOME/.config/github.conf
     bareHost='git@reese'
  bareHostDir='/home/git/'
 expectToBeIn='src'      # most projects start in ....src/project -- warn if thats not the case
@@ -87,17 +93,38 @@ function addPostHook {
  return $?
 }
 
+function addlocalhooks{
+   # check we have a git dir or exit
+   [ ! -d .git ] && echo "Not a git repo" && exit 1
 
-# if no args, pretent it's -s
+   #
+   # add push for commit if it's not already there
+   
+   # create file if DNE
+   ls .git/hooks/post-commit 2>&1 1>/dev/null || \
+      ( echo '#!/bin/sh' > .git/hooks/post-commit && \
+        chmod +x           .git/hooks/post-commit)
+
+   #add push if DNE
+   grep '^git push'    .git/hooks/post-commit 1>/dev/null || \
+    echo 'git push' >> .git/hooks/post-commit
+
+}
+
+
+# if no args, pretend it's -s
 [ "x$1" == "x" ] && getStatus=1
 
-while getopts "cgnsp:H:R:W:" opt; do
+while getopts "cglnsp:H:R:W:" opt; do
    case $opt in
     n) # create a new project on remote host
       newProject=1
     ;;
     g) # create a new project on remote hostB
       github=1
+    ;;
+    l) # local hooks only
+      localHooks=1
     ;;
     p) # project name on remote host
       project=$OPTARG
@@ -146,6 +173,12 @@ remoteProjName=$project.git
 
 
 #### DO WORK ######
+if [ $localHooks ]; then
+ # clear the options that do things
+ newProject=
+ github=
+ addlocalhooks
+fi
 
 # create a new project
 if [ $newProject ]; then
@@ -162,10 +195,10 @@ if [ $newProject ]; then
 
    # add post-update  xmpp message sending to remote server
    # or exit with message (maybe don't have to die for this error?)
-   # TODO: will@reese should be a configurable jabber ID
-   ! addPostHook 'echo "$(pwd) $@" | /usr/bin/site_perl/sendxmpp will@reese'    && \
-      echo "post-update hook creation failed"                                   && \
-      echo "This shouldn't happen"                                              && \
+   # TODO: bot@reese should be a configurable jabber ID
+   ! addPostHook 'echo "$(pwd) $@" | /usr/bin/site_perl/sendxmpp bot@reese' && \
+      echo "post-update hook creation failed"                               && \
+      echo "This shouldn't happen"                                          && \
       exit 1
       
 
@@ -196,17 +229,7 @@ if [ $newProject ]; then
    fi
 
 
-   #
-   # add push for commit if it's not already there
-   
-   # create file if DNE
-   ls .git/hooks/post-commit 2>&1 1>/dev/null || \
-      ( echo '#!/bin/sh' > .git/hooks/post-commit && \
-        chmod +x           .git/hooks/post-commit)
-
-   #add push if DNE
-   grep '^git push'    .git/hooks/post-commit 1>/dev/null || \
-    echo 'git push' >> .git/hooks/post-commit
+   addlocalhooks
 
    # set remote origin
    git remote add origin $bareHost:$bareHostDir/$project.git
