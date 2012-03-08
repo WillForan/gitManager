@@ -125,7 +125,8 @@ function addlocalhooks {
    [ -z $proj ] && echo "no url matching $bareHost (should have been $remotePath$remoteProjName) in .git/config" && exit 1;
 
    # proj is in the file already OR  add it
-   grep "^$proj" $gitManagedList || echo "$proj $(pwd)" >> $gitManagedList;
+   grep "^$proj" $gitManagedList 2>&1 1>/dev/null || \
+     echo "$proj $(pwd)" >> $gitManagedList;
 
 
 }
