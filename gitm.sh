@@ -59,27 +59,20 @@ function setup {
      echo "setup should be in the same dir as rc.sample and xmppListener" && \
      exit 1
 
-   # copy rc if we're not overwritting
-   [ ! -r $configdir/rc ]  && cp rc.sample $configdir/rc 
-
    # if there isn't a python2 binary, python2 is probably python
    python=$(which python2  2>/dev/null || which python)
 
    # but lets check that
    $python -V 2>&1 | grep " 2" 1>/dev/null || python=
 
-   if [ -n $python ]; then 
-    echo $python
-    sed -i -e "s:PYTHONBIN=.*:PYTHONBIN=${python}:" $configdir/rc 
-   else
-    echo "couldnt find python2; cannot listen for updates!"
+   [ -z $python ]                                           && \
+    echo "couldnt find python2; cannot listen for updates!" && \
     exit 1
-   fi
 
    # check that xmpppy is installed, or try to install locally
    if ! $python -c "import xmpp" 2>/dev/null && [ ! -d xmpp ]; then
      # download and unpack xmpppy
-     wget 'http://downloads.sourceforge.net/project/xmpppy/xmpppy/0.5.0-rc1/xmpppy-0.5.0rc1.tar.gz?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fxmpppy%2Ffiles%2Fxmpppy%2F0.5.0-rc1%2F&ts=1331309526&use_mirror=voxel'
+     wget 'http://downloads.sourceforge.net/project/xmpppy/xmpppy/0.5.0-rc1/xmpppy-0.5.0rc1.tar.gz?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fxmpppy%2Ffiles%2Fxmpppy%2F0.5.0-rc1%2F&ts=1331309526&use_mirror=voxel' -O xmpppy-0.5.0rc1.tar.gz
      tar -xvf xmpppy-0.5.0rc1.tar.gz
      
      # get the useful directory and discard the rest
@@ -92,7 +85,13 @@ function setup {
 
    fi
 
+   # copy rc if we're not overwritting, return from function otherwise
+   [ ! -r $configdir/rc ]  && cp rc.sample $configdir/rc  || return
+
+
+   sed -i -e "s:PYTHONBIN=.*:PYTHONBIN=${python}:" $configdir/rc 
    echo "APPDIR=\"$(pwd)\"" >> $configdir/rc
+   echo "set +a"            >> $configdir/rc
 
    # edit the created config file
    [ -n $EDITOR ] || EDITOR="$(which vim)"
