@@ -43,14 +43,84 @@
 #
 #ENDHELP
 ####
+#### SETUP  ######
+
+function setup {
+
+   configdir=$HOME/.config/gitm
+
+   # make configuration directory
+   mkdir -p $configdir 
+
+   # are we in a good dir?
+   # need xmppListener b/c gitd.sh relies on APPDIR to find it,
+   #  APPDIR set to $(pwd)
+   [ ! -r rc.sample -o ! -r xmppListener.py ]                             && \
+     echo "setup should be in the same dir as rc.sample and xmppListener" && \
+     exit 1
+
+   # copy rc if we're not overwritting
+   [ ! -r $configdir/rc ]  && cp rc.sample $configdir/rc 
+
+   # if there isn't a python2 binary, python2 is probably python
+   python=$(which python2  2>/dev/null || which python)
+
+   # but lets check that
+   $python -V 2>&1 | grep " 2" 1>/dev/null || python=
+
+   if [ -n $python ]; then 
+    echo $python
+    sed -i -e "s:PYTHONBIN=.*:PYTHONBIN=${python}:" $configdir/rc 
+   else
+    echo "couldnt find python2; cannot listen for updates!"
+    exit 1
+   fi
+
+   # check that xmpppy is installed, or try to install locally
+   if ! $python -c "import xmpp" 2>/dev/null && [ ! -d xmpp ]; then
+     # download and unpack xmpppy
+     wget 'http://downloads.sourceforge.net/project/xmpppy/xmpppy/0.5.0-rc1/xmpppy-0.5.0rc1.tar.gz?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fxmpppy%2Ffiles%2Fxmpppy%2F0.5.0-rc1%2F&ts=1331309526&use_mirror=voxel'
+     tar -xvf xmpppy-0.5.0rc1.tar.gz
+     
+     # get the useful directory and discard the rest
+     mv xmpppy-0.5.0rc1/xmpp ./
+     rm -r xmpppy-0.5.0rc1 xmpppy-0.5.0rc1.tar.gz
+
+     ! $python -c "import xmpp" 2>/dev/null && \
+     echo "xmpppy local install failed"     && \
+     exit 1
+
+   fi
+
+   echo "APPDIR=\"$(pwd)\"" >> $configdir/rc
+
+   # edit the created config file
+   [ -n $EDITOR ] || EDITOR="$(which vim)"
+   $EDITOR $configdir/rc
+    
+   source  $configFile
+}
+
+
+
+
+
+
+
 
 #### SETTINGS #####
 
 configFile=$HOME/.config/gitm/rc
 
-! source  $configFile                              && \
+! source  $configFile   2>/dev/null                && \
   echo "Cannot source configuration: $configFile!" && \
-  exit 1
+  echo "Running Setup"                             && \
+  setup
+
+
+
+
+
 
 #### Functions #####
 
@@ -82,7 +152,7 @@ function newGitHub {
         -F "token=$token"        \
         -F "name=$project"       \
         https://github.com/api/v2/yaml/repos/create |
-    grep created_at 2>&1 2>/dev/null
+    grep created_at 1>/dev/null 2>&1 
 
    return $? # return true if curl has created_at in response
 }
@@ -125,12 +195,13 @@ function addlocalhooks {
    [ -z $proj ] && echo "no url matching $bareHost (should have been $remotePath$remoteProjName) in .git/config" && exit 1;
 
    # proj is in the file already OR  add it
-   grep "^$proj" $gitManagedList 2>&1 1>/dev/null || \
+   grep "^$proj" $gitManagedList 1>/dev/null 2>&1 || \
      echo "$proj $(pwd)" >> $gitManagedList;
 
 
 }
 
+####### PARSE INPUT OPTIONS ##########
 
 # if no args, pretend it's -s
 [ "x$1" == "x" ] && getStatus=1
@@ -204,7 +275,7 @@ fi
 if [ $newProject ]; then
 
    # make sure it's actually new to the host
-   ssh $bareHost "ls $bareHostDir/$remoteProjName" 2>&1 1>/dev/null   && \
+   ssh $bareHost "ls $bareHostDir/$remoteProjName"  1>/dev/null 2>&1  && \
       echo "$remoteProjName already exists on $bareHost"              && \
       exit 1
 
@@ -226,7 +297,7 @@ if [ $newProject ]; then
    # if there is a git repo
    # make sure there isn't already a remote section
    if [ -r .git ]; then
-      grep remote .git/config 2>&1 1>/dev/null               && \
+      grep remote .git/config  1>/dev/null 2>&1              && \
          echo "You already have a remote in your .git/conf." && \
          echo "I'm not touching that"                        && \
          exit 1;
@@ -275,7 +346,7 @@ if [ $github ]; then
  ! ssh $bareHost "cd $bareHostDir/$remoteProjName                           && \
                  ! grep remote config                                       && \
                  git remote add origin git@github.com:$githubUser/$project  && \
-                 git push -u origin master"  2>&1 1>/dev/null               && \
+                 git push -u origin master"   1>/dev/null 2>&1              && \
     echo "could not add git@github.com:$githubUser/$project as remote"      && \
     echo "either remote already exists or push failed"                      && \
     exit 1;
@@ -301,11 +372,11 @@ if [ $getStatus ]; then
 
 
   # is it on the bare remote host?
-  ! ssh $bareHost "ls $bareHostDir/$remoteProjName" 2>&1 1>/dev/null && \
+  ! ssh $bareHost "ls $bareHostDir/$remoteProjName"  1>/dev/null 2>&1&& \
      echo "$bareHost:$bareHostDir/$remoteProjName  does not exist "  && \
      exit
 
-  echo "BARE: git clone $bareHost:$bareHostdir/$remoteProjName"
+  echo "BARE: git clone $bareHost:$bareHostDir/$remoteProjName"
   echo " REMOTE"
   (ssh $bareHost "grep -A2 '\[remote' $bareHostDir/$remoteProjName/config"        || echo "NONE") | 
      sed -e 's/^/	/' 

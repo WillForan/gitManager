@@ -3,6 +3,7 @@
 # should be sourced by gitm.sh and gitd.sh
 
 set -a
+#set +a # removed from file end so APPDIR can be appended
 
 bareHost='git@reese'
 bareHostDir='/home/git/'
@@ -18,4 +19,5 @@ xmppPasswd=bot
 
 gitManagedList=$HOME/.config/gitm/list
 
-set +a
+
+PYTHONBIN=/usr/bin/python

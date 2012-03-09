@@ -16,7 +16,7 @@ source $gitManagerRC || exit "could read configuration file"
 #    try to pull
 #
 
-./xmppListener.py $xmppUser $xmppPasswd | 
+$PYTHONBIN $APPDIR/xmppListener.py $xmppUser $xmppPasswd | 
 while read bareName refBranch; do
 
   # e.g.  bareName=/home/git/gitManager.git 
