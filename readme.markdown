@@ -1,3 +1,11 @@
+# gitd.sh #
+
+watch for xmpp messages
+match message to local directory watch list
+git pull
+
+	screen -dmS gitd-session ./gitd.sh
+
 # gitm.sh #
 
 small bash script to
@@ -57,4 +65,9 @@ xmpp will also be pulled from sourceforge if not installed.
 
 ## ToFix
 * host post-hook is sent in stone (change jabber bot, have to do it for every repo)
+
+## Fanatasy
+
+* per folder xmpp listener and remote and github webhook to sendxmpp or rss/twitter monitor
+	* non-overlapping collaborations
 
