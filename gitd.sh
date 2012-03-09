@@ -22,7 +22,7 @@ while read bareName refBranch; do
   # e.g.  bareName=/home/git/gitManager.git 
   #      refBranch=refs/heads/master
   
-  echo "RECIEVED: $bareName $refBranch"
+  echo -e "RECIEVED MSG $(date)\n $bareName $refBranch"
   echo
 
 
