@@ -31,19 +31,30 @@ post-update will also send xmpp message to bot@reese
 
 will put local hooks (post-commit: push to bare remote) on newly cloned 
 
-###  "Status" ###
+### Status ###
 	gitm.sh  [-s]
 
 * show remote repo (local and bare remote)
 * show hooks       (local and bare remote)
 * also provide clone uri
 
-# Requires # 
+### "Auto" install ###
+
+invoking gitm.sh will test for ~/.config/gitm/rc
+if this is not found, an attempt to install it will be run.
+xmpp will also be pulled from sourceforge if not installed.
+
+
+## Requires 
 * git
-* sendxmpp and account
+* xmpp account and python2 (on client)
 * sshd and host for remote bare repo
+* xmpp account access and sendxmpp on host
 
-# Todo # 
+## Todo 
 
-* Jabber bot listener
 * more configurable (esp. xmpp service)
+
+## ToFix
+* host post-hook is sent in stone (change jabber bot, have to do it for every repo)
+
