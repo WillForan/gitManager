@@ -22,14 +22,22 @@ while read bareName refBranch; do
   # e.g.  bareName=/home/git/gitManager.git 
   #      refBranch=refs/heads/master
   
+  echo "RECIEVED: $bareName $refBranch"
+  echo
+
   [[ ! $bareName =~ /$bareHost/ ]] && echo "bad message" && continue
 
   localDir="$(awk -v bn="$bareName" '($1 == bn ){print $2}' $gitManagedList)"
 
+  # if there is a local dir, update it
   if [ -n $localDir ]; then
     pushd $localDir
     git pull  || echo "error on $localDir pull from $bareName!!" # | sendxmpp will@reese 
     popd 
   fi
+
+  echo
+  echo
+  echo
 
 done
