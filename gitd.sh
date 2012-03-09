@@ -21,6 +21,8 @@ while read bareName refBranch; do
 
   # e.g.  bareName=/home/git/gitManager.git 
   #      refBranch=refs/heads/master
+  
+  [[ ! $bareName =~ /$bareHost/ ]] && echo "bad message" && continue
 
   localDir="$(awk -v bn="$bareName" '($1 == bn ){print $2}' $gitManagedList)"
 
