@@ -25,18 +25,19 @@ while read bareName refBranch; do
   echo "RECIEVED: $bareName $refBranch"
   echo
 
-  [[ ! $bareName =~ /$bareHost/ ]] && echo "bad message" && continue
 
-  localDir="$(awk -v bn="$bareName" '($1 == bn ){print $2}' $gitManagedList)"
+  # print the local file ($F[1]) pulled from $gitManagedList that matches the remote file comming in from xmpp
+  localDir="$(perl -slane 'print $F[1] if $F[0] eq $ENV{bareName} && $ENV{bareName} =~ $ENV{bareHostDir}'  $gitManagedList)"
+
+  #[[ ! $bareName =~ /$bareHost/ ]] && echo "bad message" && continue
 
   # if there is a local dir, update it
-  if [ -n $localDir ]; then
-    pushd $localDir
+  if [ ! "x$localDir" == "x" ]; then
+    ! pushd $localDir && echo "$localDir doesnt exist?" && continue
     git pull  || echo "error on $localDir pull from $bareName!!" # | sendxmpp will@reese 
     popd 
   fi
 
-  echo
   echo
   echo
 
