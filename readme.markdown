@@ -59,13 +59,19 @@ xmpp will also be pulled from sourceforge if not installed.
 variables defined in ~/.config/gitm/rc 
 
 ### local
-.git/config -- adds remote $bareHost
-.git/hooks/post-commit -- adds "git push"
-.config/gitm/list      -- adds the local directory:remote directory pair
+* .git/config
+    - adds remote $bareHost
+* .git/hooks/post-commit 
+    - adds "git push"
+* .config/gitm/list      
+    - adds the local directory:remote directory pair
 
 ### bare repo remote ($bareHost)
-.git/config -- adds git hub as remote if told to
-.git/hooks/post-update -- adds sendxmpp $xmppUser, git push to github if told
+* .git/config
+    - adds git hub as remote if told to
+* .git/hooks/post-update
+    - adds sendxmpp $xmppUser
+    - git push to github if told
 
 ## Requires 
 * git
@@ -77,11 +83,11 @@ variables defined in ~/.config/gitm/rc
 
 * more configurable (esp. xmpp service)
 
-## ToFix
-* host post-hook is sent in stone (change jabber bot, have to do it for every repo)
 
 ## Fanatasy
 
-* per folder xmpp listener and remote and github webhook to sendxmpp or rss/twitter monitor
-	* non-overlapping collaborations
+* per folder xmpp listener account
+* barehost sends to more than one xmpp account (collaborators)
+    - non-overlapping collaborations
+* remote and github webhook to sendxmpp or rss/twitter monitor
 
