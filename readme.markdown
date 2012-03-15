@@ -1,8 +1,8 @@
 # gitd.sh #
 
-watch for xmpp messages
-match message to local directory watch list
-git pull
+* watch for xmpp messages
+* match message to local directory watch list
+* git pull
 
 	screen -dmS gitd-session ./gitd.sh
 
@@ -20,7 +20,7 @@ small bash script to
 	- (-g or -G) add github remote origin to bare repo
 	- (-g or -G) add hook on bare to push to github
 
-## Usage cases ##
+## Usage  ##
 
 ### start (to track) a project ###
 working along in a directory, decided it should be tracked
