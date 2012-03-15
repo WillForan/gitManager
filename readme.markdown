@@ -5,6 +5,7 @@
 * git pull
 
 e.g. poor mans daemon
+
 	screen -dmS gitd-session ./gitd.sh
 
 # gitm.sh #
