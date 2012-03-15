@@ -147,7 +147,8 @@ function newGitHub {
     exit 1
 
    # use github API to create new repo
-   curl -F "login=$githubUser"   \
+   curl -k                       \
+        -F "login=$githubUser"   \
         -F "token=$token"        \
         -F "name=$project"       \
         https://github.com/api/v2/yaml/repos/create |
@@ -210,7 +211,7 @@ function addProjectToWatchlist {
 # if no args, pretend it's -s
 [ "x$1" == "x" ] && getStatus=1
 
-while getopts "cglnsp:H:R:W:" opt; do
+while getopts "cglnspG:H:R:W:" opt; do
    case $opt in
     n) # create a new project on remote host
       newProject=1
