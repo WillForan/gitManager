@@ -15,7 +15,7 @@ small bash script to
 * (-n) add hook on remote to send xmpp (TODO: configurabe user@host)
 * (-n or -l) adds local commit hook to push to origin
 * (-n or -l) adds bare repo and localdir to watch list
-* (-g or -G)
+* also use github
 	- (-g) create github repo
 	- (-g or -G) add github remote origin to bare repo
 	- (-g or -G) add hook on bare to push to github
@@ -38,13 +38,15 @@ post-update will also send xmpp message to bot@reese
 	gitm.sh -l
 
 will put local hooks (post-commit: push to bare remote) on newly cloned 
+and add to the watch list file
 
 ### Status ###
 	gitm.sh  [-s]
 
 * show remote repo (local and bare remote)
 * show hooks       (local and bare remote)
-* also provide clone uri
+* provide clone uri
+* report if local dir is in the watchlist
 
 ### "Auto" install ###
 
@@ -52,6 +54,18 @@ invoking gitm.sh will test for ~/.config/gitm/rc
 if this is not found, an attempt to install it will be run.
 xmpp will also be pulled from sourceforge if not installed.
 
+## Breakdown
+
+variables defined in ~/.config/gitm/rc 
+
+### local
+.git/config -- adds remote $bareHost
+.git/hooks/post-commit -- adds "git push"
+.config/gitm/list      -- adds the local directory:remote directory pair
+
+### bare repo remote ($bareHost)
+.git/config -- adds git hub as remote if told to
+.git/hooks/post-update -- adds sendxmpp $xmppUser, git push to github if told
 
 ## Requires 
 * git

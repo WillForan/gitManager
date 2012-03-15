@@ -171,33 +171,38 @@ function addPostHook {
 
 function addlocalhooks {
    # check we have a git dir or exit
-   [ ! -d .git ] && echo "Not a git repo" && exit 1
+   [ ! -d .git ] && echo "Not a git repo" && return 1
 
    #
    # add push for commit if it's not already there
    
    # create file if DNE
-   ls .git/hooks/post-commit 1>&2 1>/dev/null || \
+   ls .git/hooks/post-commit 1>/dev/null 2>&1 || \
       ( echo '#!/bin/sh' > .git/hooks/post-commit && \
         chmod +x           .git/hooks/post-commit)
 
    #add push if DNE
-   grep '^git push'    .git/hooks/post-commit 1>/dev/null || \
+   grep '^git push$'   .git/hooks/post-commit 1>/dev/null || \
     echo 'git push' >> .git/hooks/post-commit
 
-   ### also add this local dir to watch list
+
+}
+
+function addProjectToWatchlist {
+
    # get the url path whos base is the remote bare host
    # rather than use $remoteProjName -- this allows -l to work when -n wasn't used
    #  and provides a check that we can work on this git tree
    proj="$(perl -ne 's:/+:/:g; print $1 if /url.*$ENV{"bareHost"}:(.*)/' .git/config)"
   
-   [ -z $proj ] && echo "no url matching $bareHost (should have been $remotePath$remoteProjName) in .git/config" && exit 1;
+   # addlocalhooks can be called before remote add
+   [ -z "$proj" ] && \
+     echo "no url matching $bareHost (should have been $remotePath$remoteProjName) in .git/config" && \
+     return 1;
 
    # proj is in the file already OR  add it
    grep "^$proj" $gitManagedList 1>/dev/null 2>&1 || \
      echo "$proj $(pwd)" >> $gitManagedList;
-
-
 }
 
 ####### PARSE INPUT OPTIONS ##########
@@ -268,30 +273,30 @@ if [ $localHooks ]; then
  newProject=
  github=
  addlocalhooks
+ addProjectToWatchlist
 fi
 
 # create a new project
 if [ $newProject ]; then
 
-   # make sure it's actually new to the host
-   ssh $bareHost "ls $bareHostDir/$remoteProjName"  1>/dev/null 2>&1  && \
-      echo "$remoteProjName already exists on $bareHost"              && \
-      exit 1
+   # create remote with hooks if its not there
+   if ! ssh $bareHost "ls $bareHostDir/$remoteProjName"  1>/dev/null 2>&1; then
 
-   # create bare repo on host 
-   ! ssh $bareHost "cd $bareHostDir; git init --bare $remoteProjName" && \
-      echo "could not create bare $project"                           && \
-      exit 1
+      # create bare repo on host 
+      ! ssh $bareHost "cd $bareHostDir; git init --bare $remoteProjName" && \
+         echo "could not create bare $project"                           && \
+         exit 1
 
-   # add post-update  xmpp message sending to remote server
-   # or exit with message (maybe don't have to die for this error?)
-   # TODO: bot@reese should be a configurable jabber ID
-   ! addPostHook 'echo "$(pwd) $@" | /usr/bin/site_perl/sendxmpp bot@reese' && \
-      echo "post-update hook creation failed"                               && \
-      echo "This shouldn't happen"                                          && \
-      exit 1
-      
+      # add post-update  xmpp message sending to remote server
+      # or exit with message (maybe don't have to die for this error?)
+      ! addPostHook 'echo "$(pwd) $@" |' " /usr/bin/site_perl/sendxmpp $xmppUser"  && \
+         echo "post-update hook creation failed"                                   && \
+         echo "This shouldn't happen - Im quitting"                                && \
+         exit 1
 
+   else
+      echo "$remoteProjName already exists on $bareHost"
+   fi
 
    # if there is a git repo
    # make sure there isn't already a remote section
@@ -304,11 +309,18 @@ if [ $newProject ]; then
       # repo exists but doesn't talk to anything else yet
       echo youve already started a local git repo here, thats cool
 
+
    # if there isn't a git repo 
    # make current directory a git repo
    else
       # if we can't create a rep exit with explination
       ! git init  && echo "can't make $(pwd) a repo, not pushing to host" && exit 1
+   fi
+
+      # if there is no log need to make a commit
+      # only happens if git init is run, but no commit
+      # e.g. we just created the git repo
+   if ! git log 1>/dev/null 2>&1 ; then
 
       # everything should have a readme
       vim README
@@ -318,14 +330,16 @@ if [ $newProject ]; then
       git commit -m 'initial, via gitm.sh'
    fi
 
+   # set remote origin and push to it
+   git remote add origin "$bareHost:$bareHostDir/$project.git" && \ 
+      git push -u origin master 
 
+   # add local hooks
+   # - push to bareHost on commit
    addlocalhooks
 
-   # set remote origin
-   git remote add origin $bareHost:$bareHostDir/$project.git
-
-   # push to it
-   git push origin master
+   # add bareHostDir <-> local dir to to xmpp message watch list
+   addProjectToWatchlist
 fi
 
 if [ $github ]; then
@@ -375,6 +389,7 @@ if [ $getStatus ]; then
      echo "$bareHost:$bareHostDir/$remoteProjName  does not exist "  && \
      exit
 
+  echo 
   echo "BARE: git clone $bareHost:$bareHostDir/$remoteProjName"
   echo " REMOTE"
   (ssh $bareHost "grep -A2 '\[remote' $bareHostDir/$remoteProjName/config"        || echo "NONE") | 
@@ -383,5 +398,12 @@ if [ $getStatus ]; then
   echo " POST-UPDATE"
   (ssh $bareHost "cat $bareHostDir/$remoteProjName/hooks/post-update 2>/dev/null" || echo -e "NONE")  | 
     sed -e 's/^/	/' 
+
+
+  # and are we watching this for changes? 
+
+  echo
+  echo "WATCHED ($gitManagedList)"
+  echo $(grep "$(pwd)" $gitManagedList || echo "no") | sed -e 's/^/	/'
 fi
 
