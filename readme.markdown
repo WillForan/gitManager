@@ -4,6 +4,7 @@
 * match message to local directory watch list
 * git pull
 
+e.g. poor mans daemon
 	screen -dmS gitd-session ./gitd.sh
 
 # gitm.sh #
