@@ -146,13 +146,17 @@ function newGitHub {
     echo "Github settings are not set in $configFile"             && \
     exit 1
 
-   # use github API to create new repo
-   curl -k                       \
-        -F "login=$githubUser"   \
-        -F "token=$token"        \
-        -F "name=$project"       \
-        https://github.com/api/v2/yaml/repos/create |
+   # use new github API to create new repo
+   curl -u $githubUser:$githubPass -H -X POST -d "{\"name\": \"$project\"}" https://api.github.com/user/repos | 
     grep created_at 1>/dev/null 2>&1 
+
+   # OLD API
+   #curl -k                       \
+   #     -F "login=$githubUser"   \
+   #     -F "token=$token"        \
+   #     -F "name=$project"       \
+   #     https://github.com/api/v2/yaml/repos/create |
+   # grep created_at 1>/dev/null 2>&1 
 
    return $? # return true if curl has created_at in response
 }
